@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -29,9 +30,9 @@ namespace Game2048
             GrdField.ColumnDefinitions.Clear();
             for (int i = 0; i < _fieldSize; i++)
             {
-                ColumnDefinition newC = new ColumnDefinition { Width = new GridLength(_tileSize, GridUnitType.Star) };
+                var newC = new ColumnDefinition { Width = new GridLength(_tileSize, GridUnitType.Star) };
                 GrdField.ColumnDefinitions.Add(newC);
-                RowDefinition newR = new RowDefinition { Height = new GridLength(_tileSize, GridUnitType.Star) };
+                var newR = new RowDefinition { Height = new GridLength(_tileSize, GridUnitType.Star) };
                 GrdField.RowDefinitions.Add(newR);
             }
             GrdField.Children.Clear();
@@ -60,7 +61,7 @@ namespace Game2048
                 HorizontalContentAlignment = HorizontalAlignment.Center,
                 VerticalContentAlignment = VerticalAlignment.Center,
                 Foreground = Brushes.White,
-                FontSize = _tileSize / 2
+                FontSize = _tileSize / 4
             };
             if (IsFieldFree(rRow, rCol))
             {
@@ -147,12 +148,12 @@ namespace Game2048
                             {
                                 Grid.SetRow(labelToMove, xCoord + xOffset);
                                 Grid.SetColumn(labelToMove, yCoord + yOffset);
-                                if (Convert.ToInt32(labelToMove.Content) * 2 == 2048)
+                                if (Convert.ToInt32(labelToMove.Content, CultureInfo.CurrentCulture) * 2 == 2048)
                                 {
                                     MessageBox.Show("Glückwunsch du hast das Spiel geschafft");
                                     this.Close();
                                 }
-                                labelToMove.Content = Convert.ToInt32(labelToMove.Content) * 2;
+                                labelToMove.Content = Convert.ToInt32(labelToMove.Content, CultureInfo.CurrentCulture) * 2;
                                 labelToMove.Background = GetColor(labelToMove.Content.ToString());
                             }
                         }
@@ -176,7 +177,7 @@ namespace Game2048
                         if (movingTile.Content.ToString() == offsetTile.Content.ToString())
                         {
                             _labelToRemove.Add(offsetTile);
-                            _scores += Convert.ToInt32(offsetTile.Content);
+                            _scores += Convert.ToInt32(offsetTile.Content, CultureInfo.CurrentCulture);
                             LblScoresInput.Content = _scores;
                             offsetTile.Content = "";
                             return true;
