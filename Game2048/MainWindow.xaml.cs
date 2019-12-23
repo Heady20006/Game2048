@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Windows;
@@ -11,11 +11,16 @@ namespace Game2048
     public partial class MainWindow
     {
         private int _scores;
+        private Key _lastKey;
+        private bool _gameOver;
 
-        private int _fieldSize = 4;
-        private int _tileSize = 96;
+        private double _fieldSize = 4;
+        private double _tileSize = 96;
+        private bool _playMore = false;
+        private bool _bigMode;
 
         private readonly List<Label> _labelToRemove = new List<Label>();
+
         public MainWindow()
         {
             InitializeComponent();
@@ -25,6 +30,8 @@ namespace Game2048
         {
             LblScoresInput.Content = "0";
             _scores = 0;
+            _playMore = false;
+            _gameOver = false;
             GrdField.ShowGridLines = true;
             GrdField.RowDefinitions.Clear();
             GrdField.ColumnDefinitions.Clear();
@@ -42,29 +49,47 @@ namespace Game2048
 
         private void CreateNewTile()
         {
-            var randomizer = new Random();
-            string content;
-            var rCol = randomizer.Next(0, 4);
-            var rRow = randomizer.Next(0, 4);
-
-            if (randomizer.Next(0, 2) == 1)
-                content = "2";
-            else
-                content = "4";
-
-            Label newTile = new Label
+            while (true)
             {
-                Content = content,
-                Width = _tileSize,
-                Height = _tileSize,
-                Background = GetColor(content),
-                HorizontalContentAlignment = HorizontalAlignment.Center,
-                VerticalContentAlignment = VerticalAlignment.Center,
-                Foreground = Brushes.White,
-                FontSize = _tileSize / 4
-            };
-            if (IsFieldFree(rRow, rCol))
-            {
+                var randomizer = new Random();
+                string content;
+                var rCol = randomizer.Next(0, 4);
+                var rRow = randomizer.Next(0, 4);
+                var ranNumber = randomizer.Next(0, 3);
+
+                if (_bigMode)
+                {
+                    if (ranNumber == 1)
+                        content = "2";
+                    else if (ranNumber == 2)
+                        content = "4";
+                    else
+                        content = "8";
+                }
+                else
+                {
+                    if (ranNumber == 1)
+                        content = "2";
+                    else
+                        content = "4";
+                }
+                if (!IsFieldFree(rRow, rCol))
+                {
+                    break;
+                }
+
+                Label newTile = new Label
+                {
+                    Content = content,
+                    Width = _tileSize,
+                    Height = _tileSize,
+                    Background = GetColor(content),
+                    HorizontalContentAlignment = HorizontalAlignment.Center,
+                    VerticalContentAlignment = VerticalAlignment.Center,
+                    Foreground = Brushes.White,
+                    FontSize = _tileSize / 4
+                };
+                
                 Grid.SetColumn(newTile, rCol);
                 Grid.SetRow(newTile, rRow);
                 GrdField.Children.Add(newTile);
@@ -97,6 +122,14 @@ namespace Game2048
                     return Brushes.PaleVioletRed;
                 case "2048":
                     return Brushes.Violet;
+                case "4096":
+                    return Brushes.PaleVioletRed;
+                case "8192":
+                    return Brushes.OrangeRed;
+                case "16384":
+                    return Brushes.IndianRed;
+                case "32768":
+                    return Brushes.DarkRed;
                 default:
                     return Brushes.White;
             }
@@ -106,9 +139,12 @@ namespace Game2048
         {
             if (!IsGameOver())
             {
+                if (GrdField.Children.Count == _fieldSize * _fieldSize)
+                {
+                    _gameOver = true;
+                }
                 for (int i = 0; i < _fieldSize; i++)
                 {
-
                     int xOffset = 0;
                     int yOffset = 0;
                     switch (direction)
@@ -143,18 +179,21 @@ namespace Game2048
                                       (xCoord + xOffset <= _fieldSize - 1 && yCoord + yOffset <= _fieldSize - 1))) continue;
                                 Grid.SetRow(labelToMove, xCoord + xOffset);
                                 Grid.SetColumn(labelToMove, yCoord + yOffset);
+                                _gameOver = false;
                             }
                             else if (CanCombineTiles(xCoord, xOffset, yCoord, yOffset, labelToMove))
                             {
                                 Grid.SetRow(labelToMove, xCoord + xOffset);
                                 Grid.SetColumn(labelToMove, yCoord + yOffset);
-                                if (Convert.ToInt32(labelToMove.Content, CultureInfo.CurrentCulture) * 2 == 2048)
+                                if ((Convert.ToInt32(labelToMove.Content, CultureInfo.CurrentCulture) * 2 == 2048) & !_playMore)
                                 {
-                                    MessageBox.Show("Glückwunsch du hast das Spiel geschafft");
-                                    this.Close();
+                                    MessageBoxResult dialogResult = MessageBox.Show("Möchtest du weiterspielen ? ", "Glückwunsch du hast gewonnen", MessageBoxButton.YesNo);
+                                    if (dialogResult == MessageBoxResult.Yes)
+                                        _playMore = true;
                                 }
                                 labelToMove.Content = Convert.ToInt32(labelToMove.Content, CultureInfo.CurrentCulture) * 2;
                                 labelToMove.Background = GetColor(labelToMove.Content.ToString());
+                                _gameOver = false;
                             }
                         }
                     }
@@ -163,6 +202,10 @@ namespace Game2048
                         GrdField.Children.Remove(toRemove);
                     }
                 }
+            }
+            else
+            {
+                MessageBox.Show("Du hast verloren du Loser (beachte es ist die Beta ^-^)");
             }
         }
 
@@ -203,7 +246,24 @@ namespace Game2048
 
         private bool IsGameOver()
         {
-            return GrdField.Children.Count == _fieldSize * _fieldSize;
+            //if (GrdField.Children.Count == _fieldSize * _fieldSize)
+            //{
+            //    foreach (Label labelToCheck in GrdField.Children)
+            //    {
+            //        for (int i = 0; i < 4; i++)
+            //        {
+            //            for (int ii = 0; ii < 4; ii++)
+            //            {
+            //                bool canCombineOneMore = CanCombineTiles(i, i, ii, ii, labelToCheck);
+            //                if (!canCombineOneMore)
+            //                {
+            //                    return false;
+            //                }
+            //            }
+            //        }
+            //    }
+            //}
+            return _gameOver;
         }
 
         private void BtnStartGame_Click(object sender, RoutedEventArgs e)
@@ -244,7 +304,11 @@ namespace Game2048
 
         private void GetReleasedKey(object sender, KeyEventArgs e)
         {
-            CreateNewTile();
+            if (_lastKey != e.Key)
+            {
+                CreateNewTile();
+                _lastKey = e.Key;
+            }
         }
 
         private void SetGridSize(object sender, RoutedEventArgs e)
@@ -254,14 +318,17 @@ namespace Game2048
                 case "Rdb4X4":
                     _fieldSize = 4;
                     _tileSize = 96;
+                    _bigMode = false;
                     break;
                 case "Rdb6X6":
                     _fieldSize = 6;
                     _tileSize = 60;
+                    _bigMode = false;
                     break;
                 case "Rdb8X8":
                     _fieldSize = 8;
                     _tileSize = 45;
+                    _bigMode = true;
                     break;
             }
             StartGame();
