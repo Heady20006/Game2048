@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 
 namespace Game2048
 {
@@ -18,6 +19,7 @@ namespace Game2048
         private double _tileSize = 96;
         private bool _playMore = false;
         private bool _bigMode;
+        private bool _ableToAnimate;
 
         private readonly List<Label> _labelToRemove = new List<Label>();
 
@@ -89,7 +91,7 @@ namespace Game2048
                     Foreground = Brushes.White,
                     FontSize = _tileSize / 4
                 };
-                
+
                 Grid.SetColumn(newTile, rCol);
                 Grid.SetRow(newTile, rRow);
                 GrdField.Children.Add(newTile);
@@ -177,14 +179,19 @@ namespace Game2048
                             {
                                 if (!((xCoord + xOffset >= 0 && yCoord + yOffset >= 0) &
                                       (xCoord + xOffset <= _fieldSize - 1 && yCoord + yOffset <= _fieldSize - 1))) continue;
+
+                                WidenObject(10, TimeSpan.FromSeconds(.3), labelToMove);
                                 Grid.SetRow(labelToMove, xCoord + xOffset);
                                 Grid.SetColumn(labelToMove, yCoord + yOffset);
+
                                 _gameOver = false;
                             }
                             else if (CanCombineTiles(xCoord, xOffset, yCoord, yOffset, labelToMove))
                             {
+                                WidenObject(10, TimeSpan.FromSeconds(.3), labelToMove);
                                 Grid.SetRow(labelToMove, xCoord + xOffset);
                                 Grid.SetColumn(labelToMove, yCoord + yOffset);
+
                                 if ((Convert.ToInt32(labelToMove.Content, CultureInfo.CurrentCulture) * 2 == 2048) & !_playMore)
                                 {
                                     MessageBoxResult dialogResult = MessageBox.Show("Möchtest du weiterspielen ? ", "Glückwunsch du hast gewonnen", MessageBoxButton.YesNo);
@@ -207,6 +214,19 @@ namespace Game2048
             {
                 MessageBox.Show("Du hast verloren du Loser (beachte es ist die Beta ^-^)");
             }
+        }
+
+        private void Minimize_Completed(object obj, EventArgs e, Label animObject)
+        {
+            WidenObject(_tileSize, TimeSpan.FromSeconds(.3), animObject);
+        }
+
+        private void WidenObject(double newWidth, TimeSpan duration, Label objectToWiden)
+        {
+            DoubleAnimation animation = new DoubleAnimation(newWidth, duration);
+            animation.Completed += new EventHandler((s, e) => Minimize_Completed(s, e, objectToWiden));
+            objectToWiden.BeginAnimation(WidthProperty, animation);
+            objectToWiden.BeginAnimation(HeightProperty, animation);
         }
 
         private bool CanCombineTiles(int x, int xOffset, int y, int yOffset, Label movingTile)
